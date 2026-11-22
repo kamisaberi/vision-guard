@@ -1,0 +1,184 @@
+# File: /home/kami/vision-guard/scenarios/vision_edge_grid/scenario.yaml
+
+version: "1.0"
+scenario:
+  name: "vision_edge_grid"
+  description: "Air-Gapped Edge Vision Grid: RTSP Breach Guard + GigE Sorter + HIPAA RAM-Only ShmRing ToF"
+
+networks:
+  vision-edge-net:
+    driver: bridge
+    subnet: "10.240.80.0/24"
+    gateway: "10.240.80.1"
+    internal: false
+
+volumes:
+  shared-models: { driver: local }
+  shared-datasets: { driver: local }
+  shared-logs: { driver: local }
+
+services:
+  nexus:
+    build: { context: ., dockerfile: docker/Dockerfile.nexus }
+    container_name: matrix-nexus
+    hostname: nexus.matrix.internal
+    restart: unless-stopped
+    privileged: true
+    networks:
+      vision-edge-net: { ipv4_address: "10.240.80.10" }
+    ports: ["50051:50051", "9443:9443", "9444:9444"]
+    volumes:
+      - ./configs:/opt/sentinel-nexus/configs:ro
+      - ./models:/opt/sentinel-nexus/models
+      - ./pcaps:/opt/sentinel-nexus/pcaps:ro
+      - shared-datasets:/var/lib/sentinel-nexus/forge_datasets
+      - shared-logs:/var/log/sentinel-nexus
+      - ./shared/lib:/usr/local/lib/matrix-deps:ro
+      - ./shared/bin/sentinel-nexus:/usr/local/bin/sentinel-nexus:ro
+      - ./web:/opt/sentinel-nexus/web
+      - ../../web:/opt/sentinel-nexus/web/plugins:ro
+    environment:
+      - LD_LIBRARY_PATH=/usr/local/lib/matrix-deps
+      - NEXUS_ENV=simulation
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9443/api/v1/fleet/nodes"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  edge-breach-rtsp-01:
+    build: { context: ., dockerfile: docker/Dockerfile.sentinel }
+    container_name: matrix-edge-breach-01
+    hostname: breach-01.matrix.internal
+    restart: unless-stopped
+    privileged: true
+    cap_add: [NET_ADMIN, NET_RAW, SYS_ADMIN, BPF]
+    depends_on: { nexus: { condition: service_healthy } }
+    networks:
+      vision-edge-net: { ipv4_address: "10.240.80.101" }
+    ports: ["8554:8554"]
+    volumes:
+      - ./configs/nodes/node_01_breach_rtsp.yaml:/etc/sentinel/sentinel.yaml:ro
+      - ./configs:/etc/sentinel/configs:ro
+      - ./models:/etc/sentinel/models:rw
+      - shared-logs:/var/log/sentinel
+      - ./shared/lib:/usr/local/lib/matrix-deps:ro
+      - ./shared/bin/sentinel:/usr/local/bin/sentinel:ro
+      - /usr/local/lib/libvision_guard.so:/usr/local/lib/libvision_guard.so:ro
+      - /usr/local/lib/blackbox/vision_guard_dissector_plugin.so:/etc/sentinel/plugins.d/vision_guard_dissector_plugin.so:ro
+    environment:
+      - LD_LIBRARY_PATH=/usr/local/lib:/usr/local/lib/matrix-deps
+      - NODE_IDENTIFIER=Edge-Vision-Breach-01
+      - SITE_IDENTIFIER=Edge-Vision-Breach-01
+      - PRIMARY_BACKEND=INTEL_OPENVINO
+      - NEXUS_HOST=10.240.80.10
+      - NEXUS_PORT=50051
+
+  edge-conveyor-gige-02:
+    build: { context: ., dockerfile: docker/Dockerfile.sentinel }
+    container_name: matrix-edge-conveyor-02
+    hostname: conveyor-02.matrix.internal
+    restart: unless-stopped
+    privileged: true
+    cap_add: [NET_ADMIN, NET_RAW, SYS_ADMIN, BPF]
+    depends_on: { nexus: { condition: service_healthy } }
+    networks:
+      vision-edge-net: { ipv4_address: "10.240.80.102" }
+    ports: ["3956:3956/udp"]
+    volumes:
+      - ./configs/nodes/node_02_conveyor_gige.yaml:/etc/sentinel/sentinel.yaml:ro
+      - ./configs:/etc/sentinel/configs:ro
+      - ./models:/etc/sentinel/models:rw
+      - shared-logs:/var/log/sentinel
+      - ./shared/lib:/usr/local/lib/matrix-deps:ro
+      - ./shared/bin/sentinel:/usr/local/bin/sentinel:ro
+      - /usr/local/lib/libvision_guard.so:/usr/local/lib/libvision_guard.so:ro
+      - /usr/local/lib/blackbox/vision_guard_dissector_plugin.so:/etc/sentinel/plugins.d/vision_guard_dissector_plugin.so:ro
+    environment:
+      - LD_LIBRARY_PATH=/usr/local/lib:/usr/local/lib/matrix-deps
+      - NODE_IDENTIFIER=Edge-Vision-Conveyor-02
+      - SITE_IDENTIFIER=Edge-Vision-Conveyor-02
+      - PRIMARY_BACKEND=NVIDIA_TENSORRT
+      - NEXUS_HOST=10.240.80.10
+      - NEXUS_PORT=50051
+
+  edge-hipaa-shm-03:
+    build: { context: ., dockerfile: docker/Dockerfile.sentinel }
+    container_name: matrix-edge-hipaa-03
+    hostname: hipaa-03.matrix.internal
+    restart: unless-stopped
+    privileged: true
+    ipc: shareable
+    shm_size: "256mb"
+    cap_add: [NET_ADMIN, NET_RAW, SYS_ADMIN, BPF]
+    depends_on: { nexus: { condition: service_healthy } }
+    networks:
+      vision-edge-net: { ipv4_address: "10.240.80.103" }
+    volumes:
+      - ./configs/nodes/node_03_hipaa_shm.yaml:/etc/sentinel/sentinel.yaml:ro
+      - ./configs:/etc/sentinel/configs:ro
+      - ./models:/etc/sentinel/models:rw
+      - shared-logs:/var/log/sentinel
+      - ./shared/lib:/usr/local/lib/matrix-deps:ro
+      - ./shared/bin/sentinel:/usr/local/bin/sentinel:ro
+      - /usr/local/lib/libvision_guard.so:/usr/local/lib/libvision_guard.so:ro
+      - /usr/local/lib/blackbox/vision_guard_dissector_plugin.so:/etc/sentinel/plugins.d/vision_guard_dissector_plugin.so:ro
+    environment:
+      - LD_LIBRARY_PATH=/usr/local/lib:/usr/local/lib/matrix-deps
+      - NODE_IDENTIFIER=Edge-Vision-HIPAA-03
+      - SITE_IDENTIFIER=Edge-Vision-HIPAA-03
+      - SENTINEL_SHM_RING=/sentinel_vision_ring
+      - PRIMARY_BACKEND=ROCKCHIP_RKNN
+      - NEXUS_HOST=10.240.80.10
+      - NEXUS_PORT=50051
+
+  vision-wire-gen:
+    image: python:3.11-slim
+    container_name: matrix-vision-wire-gen
+    restart: unless-stopped
+    ipc: "service:edge-hipaa-shm-03"
+    depends_on:
+      nexus: { condition: service_healthy }
+      edge-hipaa-shm-03: { condition: service_started }
+    networks:
+      vision-edge-net: { ipv4_address: "10.240.80.50" }
+    volumes:
+      - ./tools/vision_wire_gen.py:/app/vision_wire_gen.py:ro
+    command: ["python3", "-u", "/app/vision_wire_gen.py"]
+
+  apparatus-breach:
+    image: sentinel-matrix/apparatus-runtime:latest
+    container_name: matrix-apparatus-breach
+    restart: unless-stopped
+    depends_on: { nexus: { condition: service_healthy } }
+    networks: { vision-edge-net: { ipv4_address: "10.240.80.131" } }
+    ports: ["18102:8090"]
+    volumes:
+      - ./pcaps:/app/pcaps:ro
+      - ../../apparatus_plugins:/app/apparatus_plugins:ro
+    command: ["--type", "vision_weapon_rtsp", "--name", "Weapon-Breach-RTSP", "--target-ip", "10.240.80.101", "--target-port", "8554", "--api-port", "8090"]
+
+  apparatus-conveyor:
+    image: sentinel-matrix/apparatus-runtime:latest
+    container_name: matrix-apparatus-conveyor
+    restart: unless-stopped
+    depends_on: { nexus: { condition: service_healthy } }
+    networks: { vision-edge-net: { ipv4_address: "10.240.80.132" } }
+    ports: ["18103:8090"]
+    volumes:
+      - ./pcaps:/app/pcaps:ro
+      - ../../apparatus_plugins:/app/apparatus_plugins:ro
+    command: ["--type", "vision_conveyor_gige", "--name", "Conveyor-GigE-Sorter", "--target-ip", "10.240.80.102", "--target-port", "3956", "--api-port", "8090"]
+
+  apparatus-hipaa:
+    image: sentinel-matrix/apparatus-runtime:latest
+    container_name: matrix-apparatus-hipaa
+    restart: unless-stopped
+    depends_on: { nexus: { condition: service_healthy } }
+    networks: { vision-edge-net: { ipv4_address: "10.240.80.133" } }
+    ports: ["18104:8090"]
+    volumes:
+      - ./pcaps:/app/pcaps:ro
+      - ../../apparatus_plugins:/app/apparatus_plugins:ro
+    command: ["--type", "vision_hipaa_fall_shm", "--name", "HIPAA-ShmRing-ToF", "--target-ip", "10.240.80.103", "--target-port", "502", "--api-port", "8090"]

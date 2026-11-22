@@ -1,0 +1,10 @@
+{
+    "name": "vision_edge_grid",
+    "slug": "vision_edge_grid",
+    "title": "Air-Gapped Weapon Guard, GigE Conveyor Sorter & HIPAA RAM-Only ToF Grid",
+    "version": "1.0.0",
+    "asset_type": "scenario",
+    "target_sector": "EDGE_VISION_PRIVACY",
+    "category": "COMPUTER_VISION",
+    "description": "3 Edge Vision Sentries (RTSP/ONVIF, GigE Vision GVCP :3956, ipc:shareable POSIX /dev/shm VIS1 ring), live feeder, 3 apparatus containers, and Nexus."
+}

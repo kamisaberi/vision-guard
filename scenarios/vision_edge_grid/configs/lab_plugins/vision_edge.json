@@ -1,0 +1,62 @@
+{
+    "attacks": {
+        "vision-shm-privacy": {
+            "id": "HIPAA_RETENTION",
+            "name": "HIPAA Disk Retention / Frame Freeze Violation",
+            "multiplexer_fault": {
+                "action": "drop_to_val",
+                "value": 0.0
+            },
+            "signal_profile": "flatline_freeze"
+        },
+        "vision-rtsp-hijack": {
+            "id": "RTSP_HIJACK",
+            "name": "Air-Gapped RTSP/ONVIF Stream Hijack",
+            "multiplexer_fault": {
+                "action": "step_increase",
+                "value": 60.0
+            },
+            "signal_profile": "discrete_event"
+        },
+        "vision-gige-defect": {
+            "id": "GIGE_WRITEREG",
+            "name": "GigE Vision GVCP Register Tamper & Micro-Defect",
+            "multiplexer_fault": {
+                "action": "step_increase",
+                "value": 45.0
+            },
+            "signal_profile": "impulse_shock"
+        },
+        "vision-optical-blind": {
+            "id": "LASER_BLINDING",
+            "name": "Optical Laser Saturation / Concealed Breach",
+            "multiplexer_fault": {
+                "action": "step_increase",
+                "value": 90.0
+            },
+            "signal_profile": "caustic_ramp"
+        }
+    },
+    "categories": {
+        "vision": {
+            "plot_archetype": "spatial_kinematic",
+            "lab_module": "vision-optical-blind",
+            "physics_engine": "generic_ode",
+            "chart_config": {
+                "primary_title": "Edge Vision Frame Rate / Entropy",
+                "secondary_title": "Optical Saturation & Anomaly Score",
+                "unit": "FPS",
+                "min_val": 0.0,
+                "max_val": 60.0,
+                "safe_low": 15.0,
+                "safe_high": 35.0
+            },
+            "attacks": [
+                "vision-shm-privacy",
+                "vision-rtsp-hijack",
+                "vision-gige-defect",
+                "vision-optical-blind"
+            ]
+        }
+    }
+}
