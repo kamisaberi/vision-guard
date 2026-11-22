@@ -1,0 +1,12 @@
+# File: /home/kami/vision-guard/cmake/vision_guard.pc.in
+
+prefix=@CMAKE_INSTALL_PREFIX@
+exec_prefix=${prefix}
+libdir=${prefix}/@CMAKE_INSTALL_LIBDIR@
+includedir=${prefix}/@CMAKE_INSTALL_INCLUDEDIR@
+
+Name: vision_guard
+Description: Air-Gapped Edge Vision, GigE Vision, RTSP/ONVIF & HIPAA RAM-Only Guard
+Version: @PROJECT_VERSION@
+Libs: -L${libdir} -lvision_guard
+Cflags: -I${includedir}

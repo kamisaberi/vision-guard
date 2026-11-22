@@ -1,0 +1,5 @@
+# File: /home/kami/vision-guard/cmake/VisionGuardConfig.cmake.in
+
+@PACKAGE_INIT@
+include("${CMAKE_CURRENT_LIST_DIR}/VisionGuardTargets.cmake")
+check_required_components(VisionGuard)
