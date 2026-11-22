@@ -1,0 +1,9 @@
+{
+  "plugins": [
+    {
+      "id": "vision",
+      "script": "vision/vision.js",
+      "style": "vision/vision.css"
+    }
+  ]
+}
