@@ -9,3 +9,4 @@
 #include "vision_guard/protocols/gige_vision.hpp"
 #include "vision_guard/defense/privacy_airgap.hpp"
 #include "vision_guard/pipeline/guard_engine.hpp"
+#include "vision_guard/protocols/dms_gaze.hpp"
