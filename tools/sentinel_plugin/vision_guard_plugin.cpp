@@ -48,18 +48,27 @@ static SentinelDissectorResult plugin_dissect(const SentinelRawPacket *packet)
     vision_guard::GuardStatus st = vision_guard::GuardStatus::PASS;
     uint32_t matched_rule_id = 0;
 
-    // 1. Bus C: POSIX /dev/shm Vision Ring (reserved == 2) with "VIS1" magic
-    if (packet->reserved == 2)
+    // 1. Bus D: Raw V4L2 / MIPI-CSI2 Camera Frame (reserved == 4)
+    if (packet->reserved == 4)
     {
-        if (packet->length >= sizeof(vision_guard::protocols::ShmVisionHeader))
+        st = g_guard_engine->process_v4l2_frame(std::span<const uint8_t>(packet->data, packet->length));
+        matched_rule_id = 0x0056;
+    }
+    // 2. Bus C: POSIX /dev/shm Ring (reserved == 2) — "VIS1" or "DMS1"
+    else if (packet->reserved == 2 && packet->length >= 4)
+    {
+        uint32_t magic = 0;
+        std::memcpy(&magic, packet->data, 4);
+        const std::span<const uint8_t> span(packet->data, packet->length);
+        if (magic == vision_guard::protocols::ShmVisionValidator::MAGIC_VIS1)
         {
-            uint32_t magic = 0;
-            std::memcpy(&magic, packet->data, 4);
-            if (magic == vision_guard::protocols::ShmVisionValidator::MAGIC_VIS1)
-            {
-                st = g_guard_engine->process_shm_vision(std::span<const uint8_t>(packet->data, packet->length));
-                matched_rule_id = 0x5631;
-            }
+            st = g_guard_engine->process_shm_vision(span);
+            matched_rule_id = 0x5631;
+        }
+        else if (magic == vision_guard::protocols::DmsGazeValidator::MAGIC_DMS1)
+        {
+            st = g_guard_engine->process_dms_gaze(span);
+            matched_rule_id = 0x444D;
         }
     }
     else
@@ -87,7 +96,8 @@ static SentinelDissectorResult plugin_dissect(const SentinelRawPacket *packet)
                 {
                     const size_t tcp_hlen = static_cast<size_t>((packet->data[l4_off + 12] >> 4) & 0x0F) * 4U;
                     const size_t off = l4_off + tcp_hlen;
-                    if (tcp_hlen < 20 || off >= packet->length) return res;
+                    if (tcp_hlen < 20 || off >= packet->length)
+                        return res;
                     payload_ptr = packet->data + off;
                     payload_len = packet->length - off;
                 }
