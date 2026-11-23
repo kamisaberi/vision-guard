@@ -47,6 +47,7 @@ set(LIB_SOURCES
     src/protocols/gige_vision.cpp
     src/defense/privacy_airgap.cpp
     src/pipeline/guard_engine.cpp
+    src/protocols/dms_gaze.cpp
 )
 
 add_library(vision_guard SHARED ${LIB_SOURCES})
