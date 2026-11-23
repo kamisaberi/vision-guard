@@ -135,6 +135,12 @@ add_executable(test_rtsp_gige tests/test_rtsp_gige.cpp)
 target_link_libraries(test_rtsp_gige PRIVATE vision_guard)
 add_test(NAME TestRtspGige COMMAND test_rtsp_gige)
 
+
+add_executable(test_dms_gaze tests/test_dms_gaze.cpp)
+target_link_libraries(test_dms_gaze PRIVATE vision_guard)
+add_test(NAME TestDmsGaze COMMAND test_dms_gaze)
+
+
 add_executable(test_plugin tests/test_sentinel_plugin.cpp)
 target_link_libraries(test_plugin PRIVATE
     vision_guard
