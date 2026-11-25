@@ -6,6 +6,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <sentinel/fs/PathResolver.hpp>
 
 static void print_help()
 {
@@ -27,6 +28,38 @@ Actions:
   --plugin-desc  Print single-line extension metadata for master CLI
 )" << std::endl;
 }
+
+static std::string locate_scenario_engine()
+{
+    namespace fs = std::filesystem;
+    if (const char *m_root = std::getenv("MATRIX_ROOT"); m_root && *m_root)
+    {
+        fs::path p = fs::path(m_root) / "tools" / "scenario_engine.py";
+        if (fs::exists(p)) return p.string();
+    }
+    if (const char *home = std::getenv("HOME"); home && *home)
+    {
+        fs::path p = fs::path(home) / "sentinel-matrix" / "tools" / "scenario_engine.py";
+        if (fs::exists(p)) return p.string();
+    }
+    if (fs::exists("/opt/sentinel-matrix/tools/scenario_engine.py"))
+        return "/opt/sentinel-matrix/tools/scenario_engine.py";
+    return "scenario_engine.py";
+}
+
+static std::string resolve_cartridge_scenario(const std::string &cartridge, const std::string &slug)
+{
+    namespace fs = std::filesystem;
+    fs::path cat_dir = sentinel::fs::PathResolver::resolve_dir(sentinel::fs::ObjectClass::ScenarioCatalog) / slug;
+    if (fs::exists(cat_dir)) return cat_dir.string();
+
+    fs::path pack_dir = sentinel::fs::PathResolver::resolve_pack_uri("pack://" + cartridge + "/scenarios/" + slug);
+    if (fs::exists(pack_dir)) return pack_dir.string();
+
+    return slug;
+}
+
+
 
 int main(int argc, char *argv[])
 {
