@@ -29,13 +29,14 @@ include(CMakePackageConfigHelpers)
 
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/include
-    /home/kami/blackbox-sentinel/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/../blackbox-sentinel/include
     /usr/local/include
 )
 
 find_package(Threads REQUIRED)
 find_library(BLACKBOX_LIB blackbox REQUIRED PATHS /usr/local/lib /usr/lib)
 find_library(XINFER_LIB xinfer REQUIRED PATHS /usr/local/lib /usr/lib)
+find_library(SENTINELFS_LIB sentinelfs REQUIRED PATHS /usr/local/lib /usr/lib)
 
 message(STATUS "[vision-guard] Linked Blackbox Essential: ${BLACKBOX_LIB}")
 message(STATUS "[vision-guard] Linked Xinfer Essential:   ${XINFER_LIB}")
@@ -95,6 +96,7 @@ target_link_libraries(vision-guard-ctl PRIVATE
 add_executable(aryo-vision tools/aryo_vision/main.cpp)
 target_link_libraries(aryo-vision PRIVATE
     vision_guard
+    ${SENTINELFS_LIB}
     -Wl,--no-as-needed
     ${BLACKBOX_LIB}
     ${XINFER_LIB}
