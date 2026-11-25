@@ -35,12 +35,14 @@ static std::string locate_scenario_engine()
     if (const char *m_root = std::getenv("MATRIX_ROOT"); m_root && *m_root)
     {
         fs::path p = fs::path(m_root) / "tools" / "scenario_engine.py";
-        if (fs::exists(p)) return p.string();
+        if (fs::exists(p))
+            return p.string();
     }
     if (const char *home = std::getenv("HOME"); home && *home)
     {
         fs::path p = fs::path(home) / "sentinel-matrix" / "tools" / "scenario_engine.py";
-        if (fs::exists(p)) return p.string();
+        if (fs::exists(p))
+            return p.string();
     }
     if (fs::exists("/opt/sentinel-matrix/tools/scenario_engine.py"))
         return "/opt/sentinel-matrix/tools/scenario_engine.py";
@@ -51,19 +53,23 @@ static std::string resolve_cartridge_scenario(const std::string &cartridge, cons
 {
     namespace fs = std::filesystem;
     fs::path cat_dir = sentinel::fs::PathResolver::resolve_dir(sentinel::fs::ObjectClass::ScenarioCatalog) / slug;
-    if (fs::exists(cat_dir)) return cat_dir.string();
+    if (fs::exists(cat_dir))
+        return cat_dir.string();
 
     fs::path pack_dir = sentinel::fs::PathResolver::resolve_pack_uri("pack://" + cartridge + "/scenarios/" + slug);
-    if (fs::exists(pack_dir)) return pack_dir.string();
+    if (fs::exists(pack_dir))
+        return pack_dir.string();
 
     return slug;
 }
 
-
-
 int main(int argc, char *argv[])
 {
-    if (argc < 2) { print_help(); return 0; }
+    if (argc < 2)
+    {
+        print_help();
+        return 0;
+    }
     const std::string action = argv[1];
 
     if (action == "--plugin-desc")
@@ -71,15 +77,28 @@ int main(int argc, char *argv[])
         std::cout << "[ext. vision]           aryo vision (bench, verify-shm, verify-rtsp, verify-gige, vision-up) [Air-Gapped Edge Vision Guard]";
         return 0;
     }
-    if (action == "-h" || action == "--help" || action == "help") { print_help(); return 0; }
+    if (action == "-h" || action == "--help" || action == "help")
+    {
+        print_help();
+        return 0;
+    }
 
     if (action == "vision-up")
-        return std::system("python3 /home/kami/sentinel-matrix/tools/scenario_engine.py load /home/kami/vision-guard/scenarios/vision_edge_grid");
+    {
+        const std::string cmd = "python3 \"" + locate_scenario_engine() + "\" load \"" +
+                                resolve_cartridge_scenario("vision-guard", "vision_edge_grid") + "\"";
+        return std::system(cmd.c_str());
+    }
     if (action == "vision-down")
-        return std::system("python3 /home/kami/sentinel-matrix/tools/scenario_engine.py down --name vision_edge_grid");
+    {
+        const std::string cmd = "python3 \"" + locate_scenario_engine() + "\" down --name vision_edge_grid";
+        return std::system(cmd.c_str());
+    }
     if (action == "vision-status")
-        return std::system("python3 /home/kami/sentinel-matrix/tools/scenario_engine.py status --name vision_edge_grid");
-
+    {
+        const std::string cmd = "python3 \"" + locate_scenario_engine() + "\" status --name vision_edge_grid";
+        return std::system(cmd.c_str());
+    }
     vision_guard::core::TscClock::calibrate();
     vision_guard::pipeline::GuardEngine engine;
 
@@ -103,7 +122,8 @@ int main(int argc, char *argv[])
                 lat_ns.push_back(vision_guard::core::TscClock::cycles_to_nanoseconds(t1 - t0));
         }
         double total = 0.0;
-        for (double v : lat_ns) total += v;
+        for (double v : lat_ns)
+            total += v;
         std::cout << "[aryo-vision] Mean Latency (100k ShmVision frames): " << (total / lat_ns.size()) << " ns\n";
         return 0;
     }
@@ -121,7 +141,7 @@ int main(int argc, char *argv[])
     if (action == "verify-rtsp")
     {
         const std::string req = "TEARDOWN rtsp://10.240.80.75:8554/cam RTSP/1.0\r\n";
-        const auto st = engine.process_rtsp_onvif(std::span<const uint8_t>(reinterpret_cast<const uint8_t*>(req.data()), req.size()));
+        const auto st = engine.process_rtsp_onvif(std::span<const uint8_t>(reinterpret_cast<const uint8_t *>(req.data()), req.size()));
         std::cout << "[aryo-vision] RTSP Hijack Result: " << vision_guard::status_to_string(st) << "\n";
         return (st == vision_guard::GuardStatus::REJECT_RTSP_STREAM_HIJACK) ? 0 : 1;
     }
